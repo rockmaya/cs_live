@@ -1,0 +1,684 @@
+{% comment %} {% load querystring %}
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LC List</title>
+    <style>
+        nav {
+            padding: 10px;
+            border-bottom: 1px solid #ccc;
+            margin-bottom: 20px;
+        }
+        nav a {
+            margin-right: 15px;
+        }
+        nav div {
+            float: right;
+        }
+        ul { list-style: none; padding: 0; margin: 0; display: inline; }
+        ul li { display: inline; margin-right: 10px; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td { border: 1px solid #ccc; }
+        th, td { padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .pagination a { margin: 0 5px; }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav>
+        <a href="{% url 'lc_create' %}">Create LC</a>
+        <div>
+            <span>{{ request.user.username }}</span>
+            <ul>
+                <li><a href="{% url 'password_change' %}">Change Password</a></li>
+                <li>
+                    <form method="post" action="{% url 'logout' %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit">Logout</button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+        <div style="clear:both;"></div>
+    </nav>
+
+<h2>LC List</h2>
+
+<form method="get" style="margin-bottom:20px;">
+    <label>Bank:</label>
+    <select name="bank">
+        <option value="">All</option>
+        {% for bank in banks %}
+            <option value="{{ bank.id }}"
+                {% if request.GET.bank == bank.id|stringformat:"s" %}selected{% endif %}>
+                {{ bank.name }}
+            </option>
+        {% endfor %}
+    </select>
+
+    
+    <label for="lc_no" class="form-label">LC No</label>
+    <input type="text" id="lc_no" name="lc_no" class="form-control" placeholder="Type LC No" list="lc_no_list">
+    <datalist id="lc_no_list"></datalist>
+
+
+    <label>From:</label>
+    <input type="date" name="date_from" value="{{ request.GET.date_from }}">
+
+    <label>To:</label>
+    <input type="date" name="date_to" value="{{ request.GET.date_to }}">
+
+    <label>Status:</label>
+    <select name="status">
+        <option value="">All</option>
+        <option value="Open" {% if request.GET.status == "Open" %}selected{% endif %}>Open</option>
+        <option value="Close" {% if request.GET.status == "Close" %}selected{% endif %}>Close</option>
+    </select>
+
+    <button type="submit">Search</button>
+
+    <!-- Export button -->
+    <a href="{% url 'lc_export' %}?{{ request.GET.urlencode }}">
+        <button type="button">Export</button>
+    </a>
+</form>
+
+<!-- Table Headers with sorting links -->
+<table>
+<tr>
+    <th>Bank Name</th>
+    <th>Swift Code</th>
+    <th>Global Limit</th>
+    <th>LC No</th>
+    <th>
+        <a href="?sort_by=opening_date&order={% if sort_by == 'opening_date' and order == 'asc' %}desc{% else %}asc{% endif %}">
+            Opening Date
+            {% if sort_by == 'opening_date' %}
+                {% if order == 'asc' %}▲{% else %}▼{% endif %}
+            {% endif %}
+        </a>
+    </th>
+    <th>LC Amount</th>
+    <th>Remaining Amount</th>
+    <th>
+        <a href="?sort_by=maturity_date&order={% if sort_by == 'maturity_date' and order == 'asc' %}desc{% else %}asc{% endif %}">
+            Maturity Date
+            {% if sort_by == 'maturity_date' %}
+                {% if order == 'asc' %}▲{% else %}▼{% endif %}
+            {% endif %}
+        </a>
+    </th>
+    <th>Matured In</th>
+    <th>Status</th>
+    <th>Created At</th>
+    <th>Created By</th>
+    <th>Updated By</th>
+    <th>Updated At</th>
+    <th>Action</th>
+</tr>
+
+
+{% for row in page_obj %}
+<tr>
+    <td>{{ row.lc.bank.name }}</td>
+    <td>{{ row.lc.swift_code }}</td>
+    <td>{{ row.lc.global_limit }}</td>
+    <td>{{ row.lc.lc_no }}</td>
+    <td>{{ row.lc.opening_date }}</td>
+    <td>{{ row.lc.lc_amount }}</td>
+    <td>{{ row.remaining_amount }}</td>
+    <td>{{ row.lc.maturity_date }}</td>
+    <td>{{ row.matured_in }}</td>
+    <td>{{ row.lc.status }}</td>
+    <td>{{ row.lc.created_at|date:"Y-m-d H:i" }}</td>
+    <td>{% if row.lc.created_by %}{{ row.lc.created_by.username }}{% else %}-{% endif %}</td>
+    <td>{% if row.lc.updated_by %}{{ row.lc.updated_by.username }}{% else %}-{% endif %}</td>
+    <td>{{ row.lc.updated_at|date:"Y-m-d H:i" }}</td>
+
+<td>
+    {% if row.lc.status == 'Closed' %}
+        {% if user.is_superuser %}
+            <!-- Superuser sees Undo button -->
+            <form method="post" action="{% url 'lc_undo_close' row.lc.id %}" style="display:inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-warning py-0 px-2">Undo</button>
+            </form>
+        {% else %}
+            <!-- Regular user sees Closed -->
+            Closed
+        {% endif %}
+    {% else %}
+        <!-- LC is not closed, normal actions -->
+        <a href="{% url 'lc_edit' row.lc.id %}" class="btn btn-sm btn-warning py-0 px-2">Edit</a> |
+        <a href="{% url 'lc_delete' row.lc.id %}" class="btn btn-sm btn-danger py-0 px-2"
+           onclick="return confirm('Are you sure?');">Delete</a>
+    {% endif %}
+</td>
+
+</tr>
+{% empty %}
+<tr>
+    <td colspan="15" style="text-align:center; padding:20px; font-weight:bold;">
+        No LC Found
+    </td>
+</tr>
+{% endfor %}
+
+</table>
+
+
+
+
+<div class="pagination" style="margin-top:20px;">
+    {% with params=request.GET.urlencode %}
+        {% if page_obj.has_previous %}
+            <a href="?page=1{% if params %}&{{ params|urlencode_page:'page' }}{% endif %}">First</a>
+            <a href="?page={{ page_obj.previous_page_number }}{% if params %}&{{ params|urlencode_page:'page' }}{% endif %}">Previous</a>
+        {% endif %}
+
+        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if params %}&{{ params|urlencode_page:'page' }}{% endif %}">Next</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}{% if params %}&{{ params|urlencode_page:'page' }}{% endif %}">Last</a>
+        {% endif %}
+    {% endwith %}
+</div> {% endcomment %}
+
+
+
+{% load querystring %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>LC List</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+:root {
+    --bg: #f4f6f9;
+    --card: #ffffff;
+    --primary: #1e3a5f;
+    --text-main: #111827;
+    --text-muted: #6b7280;
+    --border: #e5e7eb;
+}
+
+/* Global styles */
+* { box-sizing: border-box; font-family: 'Inter', sans-serif; }
+body { margin: 0; background: var(--bg); color: var(--text-main); }
+
+/* Navbar */
+.navbar {
+    background: var(--card);
+    padding: 16px 36px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.navbar a { text-decoration: none; color: var(--primary); font-weight: 500; margin-right: 22px; }
+.nav-right { display: flex; gap: 18px; align-items: center; font-size: 13px; color: var(--text-muted); }
+.nav-right button { background: none; border: none; color: var(--primary); cursor: pointer; font-size: 13px; }
+
+/* Page container */
+.page-container { width: 100%; padding: 24px 36px; }
+
+/* Page Header */
+.page-header { text-align: center; margin-bottom: 32px; }
+.page-header h1 {
+    font-size: 26px;
+    font-weight: 600;
+    display: inline-block;
+    position: relative;
+    padding-bottom: 12px;
+}
+.page-header h1::after {
+    content: "";
+    width: 70px;
+    height: 2px;
+    background: var(--primary);
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+}
+.page-header p { margin-top: 8px; font-size: 14px; color: var(--text-muted); }
+
+/* Filter form */
+.filter-form {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 16px;
+    align-items: flex-end;
+    background: var(--card);
+    padding: 20px 24px;
+    border-radius: 16px;
+    margin-bottom: 32px;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.06);
+    overflow-x: auto;
+}
+.filter-form > div { flex: 1 1 auto; min-width: 140px; }
+.filter-form label { font-size: 13px; font-weight: 500; margin-bottom: 4px; display: block; }
+.filter-form input, .filter-form select { padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); font-size: 13px; width: 100%; }
+
+/* Buttons in filter form */
+.filter-form .filter-buttons {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 10px;
+}
+.filter-form button {
+    padding: 8px 18px;
+    border-radius: 10px;
+    border: none;
+    background: var(--primary);
+    color: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+}
+.filter-form button:hover { background: #162f4d; }
+
+/* Table card */
+.table-card {
+    width: 100%;
+    background: var(--card);
+    border-radius: 16px;
+    overflow-x: auto;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.06);
+}
+table { width: 100%; border-collapse: collapse; min-width: 1200px; }
+thead th {
+    background: var(--primary);
+    color: #fff;
+    padding: 14px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 13px;
+    position: sticky;
+    top: 0;
+    white-space: nowrap;
+}
+tbody td {
+    padding: 12px 14px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+td.numeric { text-align: right; }
+td.bank-name { white-space: normal; word-wrap: break-word; max-width: 180px; }
+th.action, td.action { width: 160px; text-align: center; }
+
+/* Buttons harmonized */
+.btn {
+    padding: 4px 10px;      /* smaller padding */
+    border-radius: 8px;     
+    font-size: 11px;        
+    font-weight: 500;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    min-width: 50px;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+.btn + .btn { margin-left: 6px; }
+
+/* Edit button - soft primary */
+.btn-edit { background: #1e3a5f; color: #fff; }
+.btn-edit:hover { background: #162f4d; }
+
+/* Delete button - gentle red */
+.btn-delete { background: #f87171; color: #fff; }
+.btn-delete:hover { background: #ef4444; }
+
+/* Undo button - golden accent */
+.btn-undo { background: #facc15; color: #1e3a5f; }
+.btn-undo:hover { background: #eab308; }
+
+/* Table row hover */
+tbody tr:hover { background: rgba(30,58,95,0.05); }
+
+/* Pagination */
+.pagination { margin-top: 20px; text-align: center; }
+.pagination a {
+    display: inline-block;
+    padding: 6px 12px;
+    margin: 0 4px;
+    border-radius: 8px;
+    text-decoration: none;
+    border: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--text-main);
+}
+.pagination a:hover { background: var(--bg); border-color: var(--primary); color: var(--primary); }
+
+
+/* Navbar button */
+.btn-nav {
+    padding: 8px 18px;
+    border-radius: 10px;
+    background: var(--primary);
+    color: #fff !important;           /* Always white text */
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 14px;
+    transition: background 0.2s ease;
+}
+.btn-nav:hover {
+    background: #162f4d;
+    color: #fff !important;           /* Keep text white on hover */
+}
+
+
+/* Matured In status pills */
+.maturity-pill {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* Critical – very near maturity */
+.maturity-critical {
+    background: linear-gradient(135deg, #fee2e2, #fecaca);
+    color: #991b1b;
+}
+
+/* Warning – approaching */
+.maturity-warning {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    color: #92400e;
+}
+
+/* Safe – enough time */
+.maturity-safe {
+    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+    color: #065f46;
+}
+
+/* Matured – executive gradient */
+.maturity-matured {
+    background: linear-gradient(135deg, #dbeafe, #e0e7ff);
+    color: #1e3a8a;
+}
+
+
+
+</style>
+</head>
+
+<body>
+<div class="navbar">
+    <a href="{% url 'lc_create' %}" class="btn-nav" target="_blank">Create LC</a>
+    <div class="nav-right">
+        <span>{{ request.user.username }}</span>
+        <a href="{% url 'password_change' %}">Change Password</a>
+        <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit">Logout</button>
+        </form>
+    </div>
+</div>
+
+<div class="page-container">
+    <div class="page-header">
+        <h1>List of LC Status</h1>
+    </div>
+
+    <!-- Filter Form -->
+    <form method="get" class="filter-form">
+        <div>
+            <label>Bank:</label>
+            <select name="bank">
+                <option value="">All</option>
+                {% for bank in banks %}
+                    <option value="{{ bank.id }}" {% if request.GET.bank == bank.id|stringformat:"s" %}selected{% endif %}>{{ bank.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label>LC No:</label>
+            <input type="text" id="lc_no" name="lc_no" placeholder="Type LC No" list="lc_no_list">
+            <datalist id="lc_no_list"></datalist>
+        </div>
+        <div>
+            <label>From:</label>
+            <input type="date" name="date_from" value="{{ request.GET.date_from }}">
+        </div>
+        <div>
+            <label>To:</label>
+            <input type="date" name="date_to" value="{{ request.GET.date_to }}">
+        </div>
+        <div>
+            <label>Status:</label>
+            <select name="status">
+                <option value="">All</option>
+                <option value="Open" {% if request.GET.status == "Open" %}selected{% endif %}>Open</option>
+                <option value="Closed" {% if request.GET.status == "Closed" %}selected{% endif %}>Closed</option>
+            </select>
+        </div>
+
+        <div class="filter-buttons">
+            <button type="submit">Search</button>
+            <a href="{% url 'lc_export' %}?{{ request.GET.urlencode }}">
+                <button type="button">Export</button>
+            </a>
+        </div>
+    </form>
+
+    <!-- Table -->
+    <div class="table-card">
+        <table>
+            <thead>
+            <tr>
+                <th class="bank-name">Bank Name</th>
+                <th>Swift Code</th>
+                <th class="numeric">Global Limit</th>
+                <th>LC No</th>
+                <th>
+                    <a href="?sort_by=opening_date&order={% if sort_by == 'opening_date' and order == 'asc' %}desc{% else %}asc{% endif %}" style="color:white;">
+                        Opening Date {% if sort_by == 'opening_date' %}{% if order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+                    </a>
+                </th>
+                <th class="numeric">LC Amount</th>
+                <th class="numeric">Remaining Amount</th>
+                <th>
+                    <a href="?sort_by=maturity_date&order={% if sort_by == 'maturity_date' and order == 'asc' %}desc{% else %}asc{% endif %}" style="color:white;">
+                        Maturity Date {% if sort_by == 'maturity_date' %}{% if order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+                    </a>
+                </th>
+                <th>Matured In</th>
+                <th>Status</th>
+                <th>Created By</th>
+                <th>Updated By</th>
+                <th class="action">Action</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for row in page_obj %}
+            <tr>
+                <td class="bank-name">{{ row.lc.bank.name }}</td>
+                <td>{{ row.lc.swift_code }}</td>
+                <td class="numeric">{{ row.lc.global_limit }}</td>
+                <td>{{ row.lc.lc_no }}</td>
+                <td>{{ row.lc.opening_date }}</td>
+                <td class="numeric">{{ row.lc.lc_amount }}</td>
+                <td class="numeric">{{ row.remaining_amount }}</td>
+                <td>{{ row.lc.maturity_date }}</td>
+
+
+<td class="matured-in" data-value="{{ row.matured_in }}">
+    {{ row.matured_in }}
+</td>
+
+
+
+
+
+
+                <td>{{ row.lc.status }}</td>
+                <td title="{{ row.lc.created_at|date:'Y-m-d H:i' }}">
+                    {% if row.lc.created_by %}{{ row.lc.created_by.username }}{% else %}-{% endif %}
+                </td>
+                <td title="{{ row.lc.updated_at|date:'Y-m-d H:i' }}">
+                    {% if row.lc.updated_by %}{{ row.lc.updated_by.username }}{% else %}-{% endif %}
+                </td>
+                <td class="action">
+                    {% if row.lc.status == 'Closed' %}
+                        {% if user.is_superuser %}
+                            <form method="post" action="{% url 'lc_undo_close' row.lc.id %}" style="display:inline;" class="undo-form">
+                                {% csrf_token %}
+                                <button class="btn btn-undo btn-sm" type="submit">Undo</button>
+                            </form>
+                        {% else %}
+
+                            Closed
+                        {% endif %}
+                    {% else %}
+                        <a href="{% url 'lc_edit' row.lc.id %}" class="btn btn-edit btn-sm">Edit</a>
+                        <a href="{% url 'lc_delete' row.lc.id %}" class="btn btn-delete btn-sm"
+                           onclick="return confirm('Are you sure?');">Delete</a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="13" style="text-align:center; padding:20px; font-weight:bold;">No LC Found</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination">
+        {% with params=request.GET.urlencode %}
+            {% if page_obj.has_previous %}
+                <a href="?page=1{% if params %}&{{ params|urlencode_page:'page' }}{% endif %}">First</a>
+                <a href="?page={{ page_obj.previous_page_number }}{% if params %}&{{ params|urlencode_page:'page' }}{% endif %}">Previous</a>
+            {% endif %}
+
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if params %}&{{ params|urlencode_page:'page' }}{% endif %}">Next</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}{% if params %}&{{ params|urlencode_page:'page' }}{% endif %}">Last</a>
+            {% endif %}
+        {% endwith %}
+    </div>
+</div>
+
+
+
+
+
+
+<script>
+(function () {
+    const nav = performance.getEntriesByType("navigation")[0];
+    if (nav && nav.type === "reload") {
+        window.location.replace(window.location.pathname);
+    }
+})();
+
+
+
+
+document.addEventListener('DOMContentLoaded', function () {
+    const lcInput = document.getElementById('lc_no');
+    const dataList = document.getElementById('lc_no_list');
+    let controller = null; // Abort previous request if still running
+
+    lcInput.addEventListener('input', function () {
+        const query = this.value.trim();
+        if (query.length < 1) {
+            dataList.innerHTML = '';
+            return;
+        }
+
+        // Abort previous fetch
+        if (controller) controller.abort();
+        controller = new AbortController();
+        const signal = controller.signal;
+
+        fetch(`/lc-autocomplete/?q=${encodeURIComponent(query)}`, {signal})
+            .then(res => res.json())
+            .then(data => {
+                dataList.innerHTML = '';
+                if (data.results.length === 0) return;
+                data.results.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item.text;
+                    dataList.appendChild(option);
+                });
+            })
+            .catch(err => {
+                if (err.name !== 'AbortError') console.error(err);
+            });
+    });
+});
+
+document.addEventListener("DOMContentLoaded", function() {
+    // Attach confirmation to all undo forms
+    document.querySelectorAll('.undo-form').forEach(function(form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault(); // stop default submission
+            if (confirm("Are you sure you want to Undo this LC?")) {
+                form.submit(); // submit if confirmed
+            }
+        });
+    });
+});
+
+
+document.querySelectorAll(".matured-in").forEach(td => {
+    const raw = td.dataset.value.toLowerCase().trim();
+
+    let pill = document.createElement("span");
+    pill.classList.add("maturity-pill");
+
+    if (raw.includes("matured") || raw.includes("expired")) {
+        pill.classList.add("maturity-matured");
+        pill.textContent = td.textContent.trim();
+    } else {
+        // Extract first number safely
+        const days = parseInt(raw.match(/\d+/));
+
+        pill.textContent = td.textContent.trim();
+
+        if (isNaN(days)) {
+            pill.classList.add("maturity-safe"); // fallback
+        } else if (days <= 15) {
+            pill.classList.add("maturity-critical");
+        } else if (days <= 45) {
+            pill.classList.add("maturity-warning");
+        } else {
+            pill.classList.add("maturity-safe");
+        }
+    }
+
+    td.innerHTML = "";
+    td.appendChild(pill);
+});
+
+</script>
+
+
+
+
+
+</body>
+</html>

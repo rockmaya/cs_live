@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  web:
+    build: .
+    container_name: cs_lc_app
+    ports:
+      - "9000:9000"
+    environment:
+      DB_HOST: host.docker.internal
+      DB_NAME: cs_test_db
+      DB_USER: admin
+      DB_PASSWORD: 222222
+      DB_PORT: 5432
+    volumes:
+      - .:/app
+    restart: unless-stopped

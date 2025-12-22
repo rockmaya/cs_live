@@ -1,0 +1,463 @@
+{% comment %} <!DOCTYPE html>
+<html>
+<head>
+    <title>Create LC</title>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- jQuery UI for autocomplete -->
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+    <style>
+        nav {
+            padding: 10px;
+            border-bottom: 1px solid #ccc;
+            margin-bottom: 20px;
+        }
+        nav a {
+            margin-right: 15px;
+        }
+        nav div {
+            float: right;
+        }
+        ul { list-style: none; padding: 0; margin: 0; display: inline; }
+        ul li { display: inline; margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav>
+        <a href="{% url 'lc_list' %}">LC List</a>
+        <div>
+            <span>{{ request.user.username }}</span>
+            <ul>
+                <li><a href="{% url 'password_change' %}">Change Password</a></li>
+                <li>
+                    <form method="post" action="{% url 'logout' %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit">Logout</button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+        <div style="clear:both;"></div>
+    </nav>
+
+<h2>Create LC</h2>
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Save</button>
+</form>
+
+<script>
+$(document).ready(function(){
+    // Build JS banks list from Django context
+    var banks = [
+        {% for bank in banks %}
+            { label: "{{ bank.name }}", swift: "{{ bank.swift_code }}" }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    $(".bank-typeahead").autocomplete({
+        source: banks,
+        minLength: 1,
+        select: function(event, ui){
+            $(this).val(ui.item.label);           // Bank name
+            $("#id_swift_code").val(ui.item.swift);  // Swift code auto-fill
+            return false;  // prevent default
+        }
+    });
+
+    // Optional: also update Swift code when typing exact bank name
+    $(".bank-typeahead").on("change", function(){
+        var typed = $(this).val();
+        var swift = "";
+        for(var i=0; i<banks.length; i++){
+            if(banks[i].label === typed){
+                swift = banks[i].swift;
+                break;
+            }
+        }
+        $("#id_swift_code").val(swift);
+    });
+
+    // Datepicker
+    $(".datepicker").datepicker({
+        dateFormat: "yy-mm-dd"
+    });
+});
+</script>
+</body>
+</html> {% endcomment %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Create LC</title>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- jQuery UI -->
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg: #f4f6f9;
+            --card: #ffffff;
+            --primary: #1e3a5f;
+            --text-main: #111827;
+            --text-muted: #6b7280;
+            --border: #e5e7eb;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text-main);
+        }
+
+        /* Navbar */
+        .navbar {
+            background: #ffffff;
+            padding: 16px 36px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar a {
+            text-decoration: none;
+            color: var(--primary);
+            font-weight: 500;
+            font-size: 14px;
+            margin-right: 22px;
+        }
+
+        .nav-right {
+            display: flex;
+            gap: 18px;
+            align-items: center;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .nav-right button {
+            background: none;
+            border: none;
+            color: var(--primary);
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        /* Page */
+        .page-container {
+            max-width: 1100px;
+            margin: 36px auto 60px;
+            padding: 0 24px;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+
+        .page-header h1 {
+            font-size: 26px;
+            font-weight: 600;
+            display: inline-block;
+            position: relative;
+            padding-bottom: 12px;
+        }
+
+        .page-header h1::after {
+            content: "";
+            width: 70px;
+            height: 2px;
+            background: var(--primary);
+            position: absolute;
+            left: 50%;
+            bottom: 0;
+            transform: translateX(-50%);
+        }
+
+        .page-header p {
+            margin-top: 10px;
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        /* Form Card */
+        .form-card {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 42px 48px;
+            box-shadow: 0 12px 28px rgba(0,0,0,0.06);
+        }
+
+        /* Two-column layout */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            column-gap: 32px;
+            row-gap: 22px;
+        }
+
+        form p {
+            margin: 0;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-size: 14px;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* Actions */
+        .form-actions {
+            margin-top: 36px;
+            text-align: right;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            padding: 13px 36px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        /* --- Calendar Polish --- */
+        .ui-datepicker {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+        }
+
+        .ui-datepicker-header {
+            background: none;
+            border: none;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .ui-datepicker-calendar th {
+            font-size: 11px;
+            color: var(--text-muted);
+            padding-bottom: 6px;
+        }
+
+        .ui-datepicker-calendar td a {
+            text-align: center;
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 13px;
+            color: var(--text-main);
+        }
+
+        .ui-datepicker-calendar td a:hover {
+            background: #eef2f7;
+        }
+
+        .ui-datepicker-current-day a {
+            background: var(--primary) !important;
+            color: #ffffff !important;
+        }
+
+/* Navbar button */
+.btn-nav {
+    padding: 8px 18px;
+    border-radius: 10px;
+    background: var(--primary);
+    color: #fff !important;           /* Always white text */
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 14px;
+    transition: background 0.2s ease;
+}
+.btn-nav:hover {
+    background: #162f4d;
+    color: #fff !important;           /* Keep text white on hover */
+}
+
+    </style>
+</head>
+
+<body>
+
+<div class="navbar">
+    <a href="{% url 'lc_list' %}" class="btn-nav" target="_blank">LC List</a>
+    <div class="nav-right">
+        <span>{{ request.user.username }}</span>
+        <a href="{% url 'password_change' %}">Change Password</a>
+        <form id="logout-form" method="post" action="{% url 'logout' %}" style="display:none;">
+            {% csrf_token %}
+        </form>
+        <a href="#" onclick="document.getElementById('logout-form').submit();">Logout</a>
+    </div>
+</div>
+
+
+<div class="page-container">
+    <div class="page-header">
+        <h1>Create LC Entry</h1>
+    </div>
+
+    <div class="form-card">
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="form-grid">
+                {{ form.as_p }}
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">Save LC</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% comment %} <script>
+$(document).ready(function(){
+    var banks = [
+        {% for bank in banks %}
+            { label: "{{ bank.name }}", swift: "{{ bank.swift_code }}" }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    $(".bank-typeahead").autocomplete({
+        source: banks,
+        minLength: 1,
+        select: function(event, ui){
+            $(this).val(ui.item.label);
+            $("#id_swift_code").val(ui.item.swift);
+            return false;
+        }
+    });
+
+    $(".bank-typeahead").on("change", function(){
+        var typed = $(this).val();
+        var swift = "";
+        banks.forEach(b => { if (b.label === typed) swift = b.swift; });
+        $("#id_swift_code").val(swift);
+    });
+
+    $(".datepicker").datepicker({
+        dateFormat: "yy-mm-dd",
+        showOtherMonths: true,
+        selectOtherMonths: true
+    });
+});
+</script> {% endcomment %}
+
+
+<script>
+
+    (function () {
+    const nav = performance.getEntriesByType("navigation")[0];
+    if (nav && nav.type === "reload") {
+        window.location.replace(window.location.pathname);
+    }
+})();
+
+$(document).ready(function(){
+
+    var banks = [
+        {% for bank in banks %}
+            { label: "{{ bank.name }}", swift: "{{ bank.swift_code }}" }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    $(".bank-typeahead").autocomplete({
+        source: banks,
+        minLength: 1,
+        select: function(event, ui){
+            $(this).val(ui.item.label);
+            $("#id_swift_code").val(ui.item.swift);
+            return false;
+        }
+    });
+
+    $(".bank-typeahead").on("change", function(){
+        var typed = $(this).val();
+        var swift = "";
+        banks.forEach(b => { if (b.label === typed) swift = b.swift; });
+        $("#id_swift_code").val(swift);
+    });
+
+    /* ------------------------------
+       Datepickers
+    ------------------------------ */
+
+    // Opening date → NO future dates
+    $("#id_opening_date").datepicker({
+        dateFormat: "yy-mm-dd",
+        maxDate: 0,                 // 👈 future dates disabled
+        changeMonth: true,
+        changeYear: true
+    });
+
+    // Maturity date → future allowed
+    $("#id_maturity_date").datepicker({
+        dateFormat: "yy-mm-dd",
+        changeMonth: true,
+        changeYear: true
+    });
+
+    /* ------------------------------
+       Client-side validation
+    ------------------------------ */
+    $("form").on("submit", function(e){
+        const opening = $("#id_opening_date").val();
+        const maturity = $("#id_maturity_date").val();
+
+        if (opening && maturity) {
+            const openingDate = new Date(opening);
+            const maturityDate = new Date(maturity);
+
+            if (openingDate > maturityDate) {
+                alert("Maturity date cannot be before opening date.");
+                e.preventDefault();   // ❌ stop submit
+                return false;
+            }
+        }
+    });
+
+});
+</script>
+
+</body>
+</html>

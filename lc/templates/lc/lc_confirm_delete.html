@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Delete LC</title>
+</head>
+<body>
+
+<h3>Are you sure you want to delete LC {{ lc.lc_no }}?</h3>
+
+<form method="post">
+    {% csrf_token %}
+    <button type="submit">Yes, Delete</button>
+    <a href="{% url 'lc_list' %}">Cancel</a>
+</form>
+
+</body>
+</html>

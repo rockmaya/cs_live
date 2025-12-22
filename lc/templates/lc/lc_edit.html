@@ -1,0 +1,221 @@
+{% comment %} <!DOCTYPE html>
+<html>
+<head>
+    <title>Edit LC</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+    <style>
+        /* Ensure readonly fields cannot be selected or focused */
+        input[readonly] {
+            background-color: #e9ecef;
+            cursor: not-allowed;
+            pointer-events: none;
+            user-select: none;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Edit LC</h2>
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Update</button>
+    <a href="{% url 'lc_list' %}">Cancel</a>
+</form>
+
+<script>
+$(document).ready(function(){
+    // Datepicker for opening and maturity date
+    $(".datepicker").datepicker({
+        dateFormat: "yy-mm-dd"
+    });
+});
+</script>
+
+</body>
+</html> {% endcomment %}
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Edit LC</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+
+<style>
+:root {
+    --bg: #f4f6f9;
+    --card: #ffffff;
+    --primary: #1e3a5f;
+    --text-main: #111827;
+    --text-muted: #6b7280;
+    --border: #e5e7eb;
+}
+
+/* Global */
+* { box-sizing: border-box; font-family: 'Inter', sans-serif; }
+body { margin: 0; background: var(--bg); color: var(--text-main); }
+
+/* Navbar */
+.navbar {
+    background: var(--card);
+    padding: 16px 36px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.navbar a { text-decoration: none; color: var(--primary); font-weight: 500; margin-right: 22px; }
+.nav-right { display: flex; gap: 18px; align-items: center; font-size: 13px; color: var(--text-muted); }
+.nav-right button { background: none; border: none; color: var(--primary); cursor: pointer; font-size: 13px; }
+
+/* Page Container */
+.page-container { width: 100%; padding: 24px 36px; display: flex; justify-content: center; }
+
+/* Card */
+.form-card {
+    background: var(--card);
+    padding: 32px 40px;
+    border-radius: 16px;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.06);
+    width: 100%;
+    max-width: 720px;
+}
+
+/* Header */
+.page-header { text-align: center; margin-bottom: 32px; }
+.page-header h1 {
+    font-size: 26px;
+    font-weight: 600;
+    display: inline-block;
+    position: relative;
+    padding-bottom: 12px;
+}
+.page-header h1::after {
+    content: "";
+    width: 70px;
+    height: 2px;
+    background: var(--primary);
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+}
+
+/* Form */
+form { display: flex; flex-wrap: wrap; gap: 24px; }
+form > div { flex: 1 1 45%; min-width: 250px; display: flex; flex-direction: column; }
+form label { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+form input, form select { padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border); font-size: 14px; width: 100%; }
+
+/* Readonly fields */
+input[readonly] {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+    pointer-events: none;
+    user-select: none;
+}
+
+/* Buttons */
+.form-buttons {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 16px;
+}
+button, .btn-cancel {
+    padding: 10px 18px;
+    border-radius: 10px;
+    border: none;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    text-align: center;
+    text-decoration: none; /* Remove underline */
+    color: inherit;         /* Preserve text color */
+}
+
+
+/* Navbar button */
+.btn-nav {
+    padding: 8px 18px;
+    border-radius: 10px;
+    background: var(--primary);
+    color: #fff !important;           /* Always white text */
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 14px;
+    transition: background 0.2s ease;
+}
+.btn-nav:hover {
+    background: #162f4d;
+    color: #fff !important;           /* Keep text white on hover */
+}
+
+
+button { background: var(--primary); color: #fff; }
+button:hover { background: #162f4d; }
+.btn-cancel { background: #facc15; color: var(--text-main); border: 1px solid var(--border); }
+.btn-cancel:hover { background: #e5e7eb; }
+</style>
+</head>
+
+<body>
+<div class="navbar">
+    <a href="{% url 'lc_list' %}" class="btn-nav">LC List</a>
+    <div class="nav-right">
+        <span>{{ request.user.username }}</span>
+        <a href="{% url 'password_change' %}">Change Password</a>
+        <form id="logout-form" method="post" action="{% url 'logout' %}" style="display:none;">
+            {% csrf_token %}
+        </form>
+        <a href="#" onclick="document.getElementById('logout-form').submit();">Logout</a>
+    </div>
+</div>
+
+<div class="page-container">
+    <div class="form-card">
+        <div class="page-header">
+            <h1>Edit Letter of Credit</h1>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}
+            <div>
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}
+                    <span style="color:red; font-size:12px;">{{ field.errors }}</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+
+            <div class="form-buttons">
+                <a href="{% url 'lc_list' %}" class="btn-cancel">Cancel</a>
+                <button type="submit">Update</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+$(document).ready(function(){
+    $(".datepicker").datepicker({
+        dateFormat: "yy-mm-dd"
+    });
+});
+</script>
+</body>
+</html>
