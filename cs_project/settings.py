@@ -113,13 +113,21 @@ WSGI_APPLICATION = 'cs_project.wsgi.application'
 
 
 # render
+import os
 import dj_database_url
 
+# DATABASES = {
+#     'default': dj_database_url.config(
+#         default='postgresql://cs_db_uqon_user:iuoSWnXBSgJ0q8qkF7gWis49Ain6x3aK@dpg-d553sr3e5dus73bupesg-a.oregon-postgres.render.com/cs_db_uqon'
+#     )
+# }
+
 DATABASES = {
-    'default': dj_database_url.config(
-        default='postgresql://cs_db_uqon_user:iuoSWnXBSgJ0q8qkF7gWis49Ain6x3aK@dpg-d553sr3e5dus73bupesg-a.oregon-postgres.render.com/cs_db_uqon'
-    )
+    'default': dj_database_url.config(default=os.environ.get('DATABASE_URL'))
 }
+DEBUG = os.environ.get('DEBUG') == 'True'
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
+SECRET_KEY = os.environ.get('SECRET_KEY')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
