@@ -25,6 +25,9 @@ COPY . /app/
 # App runs on 9000
 EXPOSE 9000
 
-CMD ["gunicorn", "cs_project.wsgi:application", "--chdir", "/app", "--bind", "0.0.0.0:9000"]
+
+# CMD ["gunicorn", "cs_project.wsgi:application", "--chdir", "/app", "--bind", "0.0.0.0:9000"]    
+
+CMD ["gunicorn", "cs_project.wsgi:application", "--chdir", "/app", "--bind", "0.0.0.0:$PORT"]
 
 
