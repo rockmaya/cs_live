@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install Python dependencies
 COPY requirements.txt /app/
+COPY staticfiles /app/staticfiles
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
 # Copy project source

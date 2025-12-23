@@ -16,6 +16,13 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+# Where static files will be collected
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / "staticfiles"  # or Path(BASE_DIR) / "staticfiles"
+
+# Optional: enable gzip and caching
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
@@ -25,7 +32,9 @@ SECRET_KEY = 'django-insecure-q6hy594t1++^#^**yd&g0)%(63%)849ygaz&_e@#)*ko06!pvv
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+
+
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -103,21 +112,13 @@ WSGI_APPLICATION = 'cs_project.wsgi.application'
 
 
 
-# railway 
-import os
+# render
+import dj_database_url
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv("PGDATABASE"),
-        'USER': os.getenv("PGUSER"),
-        'PASSWORD': os.getenv("PGPASSWORD"),
-        'HOST': os.getenv("PGHOST"),
-        'PORT': os.getenv("PGPORT", "5432"),
-        'OPTIONS': {
-            'sslmode': 'require',  # enforce SSL
-        },
-    }
+    'default': dj_database_url.config(
+        default='postgresql://cs_db_uqon_user:iuoSWnXBSgJ0q8qkF7gWis49Ain6x3aK@dpg-d553sr3e5dus73bupesg-a.oregon-postgres.render.com/cs_db_uqon'
+    )
 }
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
