@@ -4,6 +4,15 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 
+# Environment variables for superuser
+ENV DJANGO_SUPERUSER_USERNAME=admin
+ENV DJANGO_SUPERUSER_EMAIL=admin@example.com
+ENV DJANGO_SUPERUSER_PASSWORD=222222
+
+# Run migrations and create superuser
+RUN python manage.py migrate
+RUN python manage.py createsuperuser --noinput
+
 
 WORKDIR /app
 
